@@ -1,0 +1,398 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./kylon-tokens.css";
+
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../generated/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is([data-theme="dark"] *, .dark *));
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2-variations"), url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2-variations"), url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Every colour comes from the Kylon design tokens v2.2.0 (kylon-tokens.css).
+ * The template's own variable names are kept so its primitives keep working,
+ * but each one points at a token. Declared on :root and on every [data-theme]
+ * element so a dark subtree resolves to the dark tokens.
+ */
+:root,
+[data-theme] {
+  --background: var(--ky-color-surface-chrome);
+  --card: var(--ky-color-surface-card);
+  --popover: var(--ky-component-menu-bg);
+  --surface: var(--ky-color-surface-card);
+  --inverse: var(--ky-color-surface-inverse);
+  --dismiss: var(--ky-color-state-hover);
+
+  --foreground: var(--ky-color-text-primary);
+  --card-foreground: var(--ky-color-text-primary);
+  --popover-foreground: var(--ky-color-text-primary);
+  --inverse-foreground: var(--ky-color-text-on-inverse);
+  --muted-foreground: var(--ky-color-text-secondary);
+  --tertiary-foreground: var(--ky-color-text-tertiary);
+  --placeholder-foreground: var(--ky-color-text-muted);
+  --disabled-foreground: var(--ky-color-text-muted);
+
+  --primary: var(--ky-component-button-primary-bg);
+  --primary-foreground: var(--ky-component-button-primary-fg);
+  --secondary: var(--ky-component-button-secondary-bg);
+  --secondary-foreground: var(--ky-component-button-secondary-fg);
+  --muted: var(--ky-color-surface-recessed);
+  --accent: var(--ky-color-state-hover);
+  --accent-foreground: var(--ky-color-text-primary);
+
+  --brand-accent: var(--ky-color-accent-default);
+  --brand-subtle: var(--ky-color-accent-fill);
+  --brand-secondary: var(--ky-color-accent-fill);
+  --brand-tertiary: var(--ky-color-hue-rosa-tint);
+  --brand-black: var(--ky-color-text-primary);
+  --brand-white: var(--ky-color-surface-chrome);
+
+  --border: var(--ky-color-border-hairline);
+  --input: var(--ky-color-border-hairline);
+  --ring: var(--ky-color-accent-default);
+  --ring-subtle: var(--ky-color-accent-default);
+  --border-inverse: var(--ky-color-border-hairline);
+
+  --hover-overlay: var(--ky-color-state-hover);
+  --press-overlay: var(--ky-color-state-press);
+  --hover-overlay-inverse: var(--ky-color-state-hover);
+  --press-overlay-inverse: var(--ky-color-state-press);
+  --overlay-strong: color-mix(in oklab, var(--ky-color-surface-inverse) 40%, transparent);
+  --overlay-subtle: color-mix(in oklab, var(--ky-color-surface-inverse) 16%, transparent);
+
+  --primary-subtle: var(--ky-color-accent-fill);
+  --destructive: var(--ky-component-button-danger-fg);
+  --destructive-foreground: var(--ky-color-text-on-solid);
+  --destructive-subtle: var(--ky-color-hue-clay-tint);
+  --info: var(--ky-color-hue-sage-ink);
+  --info-subtle: var(--ky-color-hue-sage-tint);
+  --success: var(--ky-color-hue-olive-ink);
+  --success-subtle: var(--ky-color-hue-olive-tint);
+  --warning: var(--ky-color-hue-sun-ink);
+  --warning-subtle: var(--ky-color-hue-sun-tint);
+
+  --palette-kylon-bg: var(--ky-color-hue-olive-tint);
+  --palette-kylon-fg: var(--ky-color-hue-olive-ink);
+  --palette-purple-bg: var(--ky-color-hue-rosa-tint);
+  --palette-purple-fg: var(--ky-color-hue-rosa-ink);
+  --palette-pink-bg: var(--ky-color-hue-rosa-tint);
+  --palette-pink-fg: var(--ky-color-hue-rosa-ink);
+  --palette-cyan-bg: var(--ky-color-hue-sage-tint);
+  --palette-cyan-fg: var(--ky-color-hue-sage-ink);
+  --palette-blue-bg: var(--ky-color-hue-sage-tint);
+  --palette-blue-fg: var(--ky-color-hue-sage-ink);
+  --palette-mint-bg: var(--ky-color-hue-olive-tint);
+  --palette-mint-fg: var(--ky-color-hue-olive-ink);
+  --palette-orange-bg: var(--ky-color-hue-clay-tint);
+  --palette-orange-fg: var(--ky-color-hue-clay-ink);
+  --palette-brown-bg: var(--ky-color-hue-sun-tint);
+  --palette-brown-fg: var(--ky-color-hue-sun-ink);
+
+  /* Chart series order is fixed: Olive, Clay, Sun, Sage, Rosa. */
+  /* Product data charts: neutral series run Olive, Sun, Sage, Rosa; Clay is
+     kept for a series that means a problem (churned, overdue, bounced). */
+  --chart-1: var(--ky-color-hue-olive-solid);
+  --chart-2: var(--ky-color-hue-sun-solid);
+  --chart-3: var(--ky-color-hue-sage-solid);
+  --chart-4: var(--ky-color-hue-rosa-solid);
+  --chart-5: var(--ky-color-hue-clay-solid);
+  --chart-problem: var(--ky-color-hue-clay-solid);
+
+  --shadow-xs: none;
+  --shadow-default: none;
+  --shadow-active: none;
+  --shadow-floating: var(--ky-shadow-card);
+  --shadow-overlay: var(--ky-shadow-float);
+
+  --border-width: 0.5px;
+  --radius-xs: var(--ky-radius-2);
+  --radius-sm: var(--ky-radius-4);
+  --radius-6: var(--ky-radius-6);
+  --radius: var(--ky-radius-8);
+  --radius-10: var(--ky-radius-10);
+  --radius-md: var(--ky-radius-12);
+  --radius-lg: var(--ky-radius-14);
+  --radius-xl: var(--ky-radius-16);
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --surface-soft: var(--ky-color-surface-recessed);
+  --line-soft: var(--ky-color-border-divider);
+  --agent-surface: var(--ky-color-hue-olive-wash);
+  --agent-foreground: var(--ky-color-accent-default);
+  --motion-duration-fast: 160ms;
+  --motion-duration-medium: 220ms;
+  --motion-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --motion-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --visual-viewport-width: 100vw;
+  --visual-viewport-height: 100dvh;
+  --visual-viewport-offset-left: 0px;
+  --visual-viewport-offset-top: 0px;
+  --visual-viewport-center-x: 50vw;
+  --visual-viewport-center-y: 50dvh;
+  --keyboard-safe-bottom: 0px;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-surface: var(--surface);
+  --color-inverse: var(--inverse);
+  --color-dismiss: var(--dismiss);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-placeholder-foreground: var(--placeholder-foreground);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-tertiary: var(--brand-tertiary);
+  --color-brand-black: var(--brand-black);
+  --color-brand-white: var(--brand-white);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-subtle: var(--ring-subtle);
+  --color-border-inverse: var(--border-inverse);
+  --color-hover-overlay: var(--hover-overlay);
+  --color-press-overlay: var(--press-overlay);
+  --color-hover-overlay-inverse: var(--hover-overlay-inverse);
+  --color-press-overlay-inverse: var(--press-overlay-inverse);
+  --color-overlay-strong: var(--overlay-strong);
+  --color-overlay-subtle: var(--overlay-subtle);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-palette-kylon-bg: var(--palette-kylon-bg);
+  --color-palette-kylon-fg: var(--palette-kylon-fg);
+  --color-palette-purple-bg: var(--palette-purple-bg);
+  --color-palette-purple-fg: var(--palette-purple-fg);
+  --color-palette-pink-bg: var(--palette-pink-bg);
+  --color-palette-pink-fg: var(--palette-pink-fg);
+  --color-palette-cyan-bg: var(--palette-cyan-bg);
+  --color-palette-cyan-fg: var(--palette-cyan-fg);
+  --color-palette-blue-bg: var(--palette-blue-bg);
+  --color-palette-blue-fg: var(--palette-blue-fg);
+  --color-palette-mint-bg: var(--palette-mint-bg);
+  --color-palette-mint-fg: var(--palette-mint-fg);
+  --color-palette-orange-bg: var(--palette-orange-bg);
+  --color-palette-orange-fg: var(--palette-orange-fg);
+  --color-palette-brown-bg: var(--palette-brown-bg);
+  --color-palette-brown-fg: var(--palette-brown-fg);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-surface-soft: var(--surface-soft);
+  --color-line-soft: var(--line-soft);
+  --color-agent-surface: var(--agent-surface);
+  --color-agent-foreground: var(--agent-foreground);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-default: var(--shadow-default);
+  --shadow-active: var(--shadow-active);
+  --shadow-floating: var(--shadow-floating);
+  --shadow-overlay: var(--shadow-overlay);
+  --radius: var(--radius);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-6: var(--radius-6);
+  --radius-10: var(--radius-10);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --text-display: 42px;
+  --text-display--line-height: normal;
+  --text-display--font-weight: 600;
+  --text-headline-lg: 24px;
+  --text-headline-lg--line-height: normal;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: normal;
+  --text-headline-md--font-weight: 600;
+  --text-headline-sm: 17px;
+  --text-headline-sm--line-height: normal;
+  --text-headline-sm--font-weight: 600;
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  --text-label-md--font-weight: 600;
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 16px;
+  --text-label-sm--font-weight: 600;
+  --text-body-md: 14px;
+  --text-body-md--line-height: 22px;
+  --text-body-md--font-weight: 400;
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 18px;
+  --text-body-sm--font-weight: 400;
+}
+
+@theme inline {
+  --color-ky-chrome: var(--ky-color-surface-chrome);
+  --color-ky-card: var(--ky-color-surface-card);
+  --color-ky-canvas: var(--ky-color-surface-canvas);
+  --color-ky-recessed: var(--ky-color-surface-recessed);
+  --color-ky-selected: var(--ky-color-surface-selected);
+  --color-ky-selected-row: var(--ky-color-state-selected-row);
+  --color-ky-hover: var(--ky-color-state-hover);
+  --color-ky-press: var(--ky-color-state-press);
+  --color-ky-ink: var(--ky-color-text-primary);
+  --color-ky-ink-2: var(--ky-color-text-secondary);
+  --color-ky-ink-3: var(--ky-color-text-tertiary);
+  --color-ky-muted: var(--ky-color-text-muted);
+  --color-ky-on-solid: var(--ky-color-text-on-solid);
+  --color-ky-hairline: var(--ky-color-border-hairline);
+  --color-ky-divider: var(--ky-color-border-divider);
+  --color-ky-accent: var(--ky-color-accent-default);
+  --color-ky-accent-fill: var(--ky-color-accent-fill);
+  --color-ky-accent-ink: var(--ky-color-accent-ink);
+  --color-ky-danger: var(--ky-component-button-danger-fg);
+  --color-olive-solid: var(--ky-color-hue-olive-solid);
+  --color-olive-tint: var(--ky-color-hue-olive-tint);
+  --color-olive-wash: var(--ky-color-hue-olive-wash);
+  --color-olive-ink: var(--ky-color-hue-olive-ink);
+  --color-sage-solid: var(--ky-color-hue-sage-solid);
+  --color-sage-tint: var(--ky-color-hue-sage-tint);
+  --color-sage-wash: var(--ky-color-hue-sage-wash);
+  --color-sage-ink: var(--ky-color-hue-sage-ink);
+  --color-sun-solid: var(--ky-color-hue-sun-solid);
+  --color-sun-tint: var(--ky-color-hue-sun-tint);
+  --color-sun-wash: var(--ky-color-hue-sun-wash);
+  --color-sun-ink: var(--ky-color-hue-sun-ink);
+  --color-clay-solid: var(--ky-color-hue-clay-solid);
+  --color-clay-tint: var(--ky-color-hue-clay-tint);
+  --color-clay-wash: var(--ky-color-hue-clay-wash);
+  --color-clay-ink: var(--ky-color-hue-clay-ink);
+  --color-rosa-solid: var(--ky-color-hue-rosa-solid);
+  --color-rosa-tint: var(--ky-color-hue-rosa-tint);
+  --color-rosa-ink: var(--ky-color-hue-rosa-ink);
+  --shadow-ky-card: var(--ky-shadow-card);
+  --shadow-ky-float: var(--ky-shadow-float);
+  --shadow-ky-secondary: var(--ky-component-button-secondary-shadow);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ky-color-border-divider) transparent;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+    background-color: var(--background);
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  ::selection {
+    background: var(--ky-color-accent-fill);
+    color: var(--ky-color-accent-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ky-color-accent-default);
+    outline-offset: 2px;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--ky-color-border-divider);
+    text-underline-offset: 0.22em;
+  }
+}
+
+@layer utilities {
+  .icon-12 {
+    width: 12px;
+    height: 12px;
+  }
+
+  .icon-14 {
+    width: 14px;
+    height: 14px;
+  }
+
+  .icon-16 {
+    width: 16px;
+    height: 16px;
+  }
+
+  .icon-18 {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* CRM table rows: sticky cells need an opaque fill, so hover and selected
+   layer the state token over the chrome surface. Fill only, no movement. */
+@layer components {
+  .crm-row > td {
+    background: var(--ky-color-surface-chrome);
+  }
+  .crm-row:hover > td {
+    background: linear-gradient(var(--ky-color-state-hover), var(--ky-color-state-hover)), var(--ky-color-surface-chrome);
+  }
+  .crm-row[data-selected="true"] > td {
+    background: linear-gradient(var(--ky-color-state-selected-row), var(--ky-color-state-selected-row)), var(--ky-color-surface-chrome);
+  }
+  .crm-head > th {
+    background: var(--ky-color-surface-chrome);
+  }
+}

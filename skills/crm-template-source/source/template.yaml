@@ -1,0 +1,18 @@
+id: crm-template
+name: CRM Template
+version: 1.0.0
+category: sales
+icon: handshake
+summary: A blank CRM for B2B sales, VC deal flow, partnerships or recruiting, set up by an Agent.
+description: People, companies, accounts, deals, meetings, follow-ups, lists, insights, review and a read-only data sources page, with one intake API that every sync writes through.
+trigger_phrases:
+  - set up a CRM
+  - install the CRM template
+  - build a B2B sales CRM
+  - build a VC deal flow CRM
+  - track partners in a CRM
+  - build a recruiting CRM
+agent_usage: |
+  Create the App from this template, provision its database, push and publish. Then set it up with the bundled skill skills/install-crm/SKILL.md (create it in the workspace with skill create --slug install-crm --from skills/install-crm and follow it): it asks the CRM type, brings in customer data the Room already holds with the team's OK, and helps each person connect their own email, calendar and meeting notes. Every sync writes through POST /api/intake.
+maintainer_notes: |
+  Ship with no rows. Never add customer records, people, emails or workspace identifiers. Keep entities in lib/crm/entities.ts, the migration and the App definition aligned.

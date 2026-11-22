@@ -1,0 +1,244 @@
+// ===== Shared helpers: identical in every template in this folder (see README.md). =====
+// Fill every __PLACEHOLDER__ before saving. Never paste a credential value into the code:
+// the Automation runtime injects its own credential into the environment.
+import { ctx, proxy, state } from '@kylon/workflow-sdk';
+
+const WS = '__WORKSPACE_ID__';
+const APP = '__CRM_APP_ID__'; // the CRM App
+const CRM_ROOM = '__CRM_ROOM_ID__'; // the Room the CRM App lives in (record threads are created there)
+const MODEL = '__MODEL__'; // a fast Claude model for sorting and short summaries; a stronger one for recaps
+const RUNTIME_CREDENTIAL_ENV = '__RUNTIME_CREDENTIAL_ENV__'; // variable name from `workflow help` (Data APIs)
+
+const PX = (process.env.PROXY_API_BASE || '').replace(/\/$/, '');
+const P2 = (process.env.P2_API_BASE || '').replace(/\/$/, '');
+const runtimeIdentity = (): string => process.env[RUNTIME_CREDENTIAL_ENV] || '';
+const proxyHeaders = () => Object.fromEntries([['x-api-key', runtimeIdentity()]]);
+const authHeaders = () => Object.fromEntries([['Authorization', 'Bearer ' + runtimeIdentity()]]);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Run one tool of a Connection. Rate limits and server errors are retried; any other error fails at once. */
+async function tool(connection: string, name: string, args: Record<string, unknown>): Promise<any> {
+  for (let attempt = 0; ; attempt++) {
+    const r = await fetch(`${PX}/proxy/tools/execute`, {
+      method: 'POST',
+      headers: { ...proxyHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connection_id: connection, tool: name, arguments: args }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    if ((r.status === 429 || r.status >= 500) && attempt < 2) { await sleep(3000 * (attempt + 1)); continue; }
+    if (!r.ok) throw new Error(`${name} ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const b: any = await r.json();
+    if (b?.successful === false) throw new Error(`${name}: ${String(b?.error ?? '').slice(0, 200)}`);
+    return b;
+  }
+}
+
+/** Call the CRM App's API. A 404 returns null: "not found" is an answer, not a failure. */
+async function crm(method: string, path: string, body?: unknown, query: Record<string, string> = {}): Promise<any> {
+  const r = await fetch(`${P2}/workspaces/${WS}/apps/${APP}/api`, {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method, path, query, ...(body !== undefined ? { body } : {}) }),
+  });
+  const j: any = await r.json().catch(() => null);
+  const resp = j?.result?.response;
+  if (resp?.status === 404) return null;
+  if (!r.ok || !resp?.ok) throw new Error(`crm ${method} ${path}: ${r.status}/${resp?.status ?? ''} ${String(resp?.text ?? '').slice(0, 200)}`);
+  return resp.body;
+}
+
+/** Workspace REST (messages, threads, follow-ups). POSTs are never retried, so nothing is posted twice. */
+async function workspace(method: string, path: string, body?: unknown): Promise<any> {
+  for (let attempt = 0; ; attempt++) {
+    const r = await fetch(`${P2}/workspaces/${WS}${path}`, {
+      method,
+      headers: { ...authHeaders(), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+    if (r.ok) return r.status === 204 ? {} : r.json().catch(() => ({}));
+    if (method === 'GET' && (r.status === 429 || r.status >= 500) && attempt < 2) { await sleep(2000 * (attempt + 1)); continue; }
+    throw new Error(`workspace ${method} ${path.split('?')[0]} -> ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  }
+}
+
+/** One tool-free model call over supplied material. Returns the parsed JSON object, or null. */
+async function modelJson(system: string, input: unknown, maxTokens = 1500, model = MODEL): Promise<any | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await proxy.fetch('/proxy/anthropic-vertex/v1/messages', {
+        method: 'POST',
+        headers: { 'anthropic-version': '2023-06-01' },
+        body: {
+          model,
+          max_tokens: maxTokens,
+          system: system + (attempt ? '\nReturn exactly one JSON object and nothing else.' : ''),
+          messages: [{ role: 'user', content: JSON.stringify(input) }],
+        },
+        timeoutMs: 60_000,
+      });
+      const out: any = await res.json();
+      const text = (out?.content ?? []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('');
+      const a = text.indexOf('{');
+      const z = text.lastIndexOf('}');
+      if (a >= 0 && z > a) return JSON.parse(text.slice(a, z + 1));
+    } catch (e) {
+      if (attempt === 1) console.error('model', String(e).slice(0, 200));
+      await sleep(3000);
+    }
+  }
+  return null;
+}
+
+// ---- small helpers ----
+const TEAM_DOMAINS = new Set<string>(__TEAM_DOMAINS__); // the team's own email domains, lowercase
+const FREE_MAIL = new Set(['gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'yahoo.com', 'icloud.com', 'me.com', 'aol.com', 'proton.me', 'protonmail.com', 'gmx.com', 'yandex.com', 'qq.com', '163.com', '126.com']);
+const MACHINE_LOCAL = /(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|notifications?|bounces?|alerts?|billing|receipts?)/i;
+const ADDR = /[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+const addrs = (v: unknown): string[] => ((Array.isArray(v) ? v.join(', ') : String(v ?? '')).match(ADDR) ?? []).map((a) => a.toLowerCase());
+const domainOf = (email: string) => (email.split('@').pop() || '').toLowerCase();
+const isTeam = (email: string) => [...TEAM_DOMAINS].some((d) => domainOf(email) === d || domainOf(email).endsWith('.' + d));
+const workDomain = (email: string) => (FREE_MAIL.has(domainOf(email)) ? null : domainOf(email));
+
+/** Relation and owner fields come back as [{ id, label }] (or a plain id); these read either shape. */
+const relId = (v: any): string | null => (Array.isArray(v) ? (v[0]?.id ?? v[0] ?? null) : (v?.id ?? v ?? null));
+const relLabel = (v: any): string => (Array.isArray(v) ? String(v[0]?.label ?? '') : String(v?.label ?? ''));
+
+/** Find a CRM person by exact email. */
+async function findPerson(email: string): Promise<any | null> {
+  const b = await crm('GET', '/api/people', undefined, { filters: JSON.stringify([{ field_id: 'email', operator: 'eq', value: email.toLowerCase() }]), limit: '1' });
+  return b?.records?.[0] ?? null;
+}
+
+/** Read every record of a CRM entity, page by page. */
+async function listAll(path: string, filters: unknown[] = []): Promise<any[]> {
+  const out: any[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 200; page++) {
+    const b = await crm('GET', path, undefined, { limit: '500', ...(filters.length ? { filters: JSON.stringify(filters) } : {}), ...(cursor ? { cursor } : {}) });
+    out.push(...(b?.records ?? []));
+    cursor = b?.pagination?.next_cursor;
+    if (!cursor) break;
+  }
+  return out;
+}
+
+/** Root message id from a thread-create response (field names differ between versions; log one response on the rehearsal). */
+function rootIdOf(b: any): string | null {
+  const c = [b?.rootMessageId, b?.root_message_id, b?.thread?.rootMessageId, b?.thread?.root_message_id, b?.thread?.id, b?.message?.parentId, b?.message?.parent_id];
+  return (c.find((x) => typeof x === 'string' && x) as string) || null;
+}
+
+/** Post text in a CRM record's own thread (creates the thread on first use). Returns the thread root id. */
+async function postInRecordThread(entity: string, recordId: string, text: string, mentions: string[] = []): Promise<string | null> {
+  const target = [APP, entity, recordId].map(encodeURIComponent).join('/');
+  const b = await workspace('POST', `/rooms/${CRM_ROOM}/agent/threads`, { target_type: 'app_record', target_id: target, text, mentions });
+  return rootIdOf(b);
+}
+
+/** Update this sync's row on the CRM's Settings > Data sources page. */
+async function reportSource(sourceId: string, written: number, total: number, error: string | null) {
+  await crm('PATCH', `/api/sync-sources/${sourceId}`, {
+    data: { status: error ? 'error' : 'syncing', last_synced_at: new Date().toISOString(), items_last_run: written, items_total: total, last_error: error },
+  });
+}
+// ===== End of shared helpers. =====
+
+// Daily CRM check: finds duplicates, profile gaps and stale syncs, and proposes fixes in Review. It never changes
+// records directly; a person accepts or dismisses each proposal. Schedule: cron "0 8 * * *" in the team's zone.
+// Guide: references/daily-check.md.
+
+const SOURCE = 'Daily check';
+const TOP = 20; // candidates judged per day
+const STALE_HOURS = 6; // a data source silent longer than this is reported
+const LEGAL = /\b(inc|llc|ltd|limited|gmbh|pte|plc|corp|corporation|co|company|sa|bv|ag|pty)\.?$/i;
+const normName = (s: string) => s.toLowerCase().replace(/[.,]/g, ' ').trim().replace(LEGAL, '').replace(/\s+/g, ' ').trim();
+const rootDomain = (d: string) => d.toLowerCase().replace(/^www\./, '').split('.').slice(-2).join('.');
+
+const JUDGE = `You check proposed CRM fixes against supplied evidence only. For each candidate return a verdict.
+Allowed changes per candidate are listed in "allowed"; propose nothing outside them and nothing the evidence does not support.
+Return JSON only: {"verdicts": [{"id": "...", "propose": true|false, "field": "<one allowed field or null>", "value": "<new value or null>", "reason": "one sentence quoting the evidence"}]}`;
+
+const companies = await listAll('/api/companies');
+const people = await listAll('/api/people');
+const openReview = await listAll('/api/review-items', [{ field_id: 'status', operator: 'eq', value: 'open' }]);
+const recentDismissed = (await listAll('/api/review-items', [{ field_id: 'status', operator: 'eq', value: 'dismissed' }]))
+  .filter((r) => Date.parse(r.data?.resolved_at ?? r.updated_at ?? '') > Date.now() - 14 * 86_400_000);
+const skip = new Set([...openReview, ...recentDismissed].map((r) => `${r.data?.entity}:${r.data?.record_id}:${r.data?.kind}`));
+const activityCount = new Map<string, number>();
+for (const a of await listAll('/api/activities', [{ field_id: 'occurred_at', operator: 'gte', value: new Date(Date.now() - 90 * 86_400_000).toISOString() }])) {
+  const c = relId(a.data?.company_id);
+  if (c) activityCount.set(c, (activityCount.get(c) ?? 0) + 1);
+}
+
+// 1. Rule scans (deterministic).
+type Cand = { id: string; rule: string; kind: 'duplicate' | 'missing' | 'suggestion'; entity: string; record_id: string; allowed: string[]; evidence: any; weight: number };
+const cands: Cand[] = [];
+const byName = new Map<string, any[]>();
+const byDomain = new Map<string, any[]>();
+for (const c of companies) {
+  const n = normName(String(c.data?.name ?? ''));
+  if (n) byName.set(n, [...(byName.get(n) ?? []), c]);
+  const d = String(c.data?.domain ?? '');
+  if (d && !FREE_MAIL.has(d)) byDomain.set(rootDomain(d), [...(byDomain.get(rootDomain(d)) ?? []), c]);
+}
+for (const group of [...byName.values(), ...byDomain.values()]) {
+  if (group.length < 2) continue;
+  const [keep, ...rest] = group.sort((a, b) => (activityCount.get(b.record_id) ?? 0) - (activityCount.get(a.record_id) ?? 0));
+  for (const c of rest) cands.push({ id: `dup:${c.record_id}`, rule: 'duplicate company', kind: 'duplicate', entity: 'companies', record_id: c.record_id, allowed: ['merge_into'], evidence: { keep: { id: keep.record_id, ...keep.data }, this: { id: c.record_id, ...c.data } }, weight: activityCount.get(c.record_id) ?? 0 });
+}
+for (const c of companies) {
+  const missing = ['industry', 'country', 'domain'].filter((f) => !c.data?.[f]);
+  const nameIsDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(String(c.data?.name ?? ''));
+  const active = (activityCount.get(c.record_id) ?? 0) > 0;
+  if (active && (missing.length >= 2 || nameIsDomain)) cands.push({ id: `gap:${c.record_id}`, rule: nameIsDomain ? 'name is a domain' : 'profile gaps', kind: nameIsDomain ? 'suggestion' : 'missing', entity: 'companies', record_id: c.record_id, allowed: nameIsDomain ? ['name'] : missing, evidence: { company: c.data }, weight: activityCount.get(c.record_id) ?? 0 });
+}
+const emailSeen = new Map<string, string>();
+for (const p of people) {
+  const e = String(p.data?.email ?? '').toLowerCase();
+  if (!e) continue;
+  if (emailSeen.has(e)) cands.push({ id: `dupp:${p.record_id}`, rule: 'duplicate person', kind: 'duplicate', entity: 'people', record_id: p.record_id, allowed: ['merge_into'], evidence: { keep: emailSeen.get(e), email: e }, weight: 5 });
+  else emailSeen.set(e, p.record_id);
+}
+
+// 2. Rank, skip what is already in Review or was dismissed lately, take the top N.
+const picked = cands.filter((c) => !skip.has(`${c.entity}:${c.record_id}:${c.kind}`)).sort((a, b) => b.weight - a.weight).slice(0, TOP);
+
+// 3. Evidence for gap candidates: the homepage text. Then one tool-free model call per batch of 5.
+for (const c of picked) {
+  const domain = c.evidence.company?.domain;
+  if (c.rule === 'profile gaps' && domain) {
+    try { c.evidence.homepage = (await (await fetch(`https://${domain}`, { signal: AbortSignal.timeout(15_000) })).text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 4000); } catch { /* none */ }
+  }
+}
+let proposed = 0;
+const notProposed: string[] = [];
+for (let i = 0; i < picked.length; i += 5) {
+  const batch = picked.slice(i, i + 5);
+  const out = await modelJson(JUDGE, batch.map((c) => ({ id: c.id, rule: c.rule, allowed: c.allowed, evidence: c.evidence })), 2000);
+  for (const c of batch) {
+    const v = (out?.verdicts ?? []).find((x: any) => x?.id === c.id);
+    // 4. Validate in code: known id, allowed field, non-empty value.
+    if (!v?.propose || !c.allowed.includes(v.field) || !String(v.value ?? '').trim()) { notProposed.push(`${c.rule} ${c.record_id}: ${v?.reason ?? 'no verdict'}`); continue; }
+    await crm('POST', '/api/review-items', { data: { title: `${c.rule}: ${v.field} → ${String(v.value).slice(0, 80)}`, kind: c.kind, status: 'open', entity: c.entity, record_id: c.record_id, field: v.field, proposed_value: String(v.value), reason: String(v.reason ?? '').slice(0, 500), source: SOURCE } });
+    proposed += 1;
+  }
+}
+
+// 5. Sync health (report only) and per-rule acceptance so far.
+const sources = (await crm('GET', '/api/data-sources'))?.sources ?? (await listAll('/api/sync-sources'));
+const stale = (Array.isArray(sources) ? sources : []).filter((s: any) => {
+  const d = s.data ?? s;
+  return d.status === 'error' || (d.last_synced_at && Date.now() - Date.parse(d.last_synced_at) > STALE_HOURS * 3_600_000);
+}).map((s: any) => `${(s.data ?? s).name ?? (s.data ?? s).kind}: ${(s.data ?? s).last_error ?? 'no sync for ' + STALE_HOURS + 'h+'}`);
+const mine = (await listAll('/api/review-items', [{ field_id: 'source', operator: 'eq', value: SOURCE }])).filter((r) => r.data?.status !== 'open');
+const perRule = new Map<string, { ok: number; all: number }>();
+for (const r of mine) {
+  const rule = String(r.data?.title ?? '').split(':')[0];
+  const x = perRule.get(rule) ?? { ok: 0, all: 0 };
+  x.all += 1; if (r.data?.status === 'accepted') x.ok += 1;
+  perRule.set(rule, x);
+}
+const acceptance = [...perRule].map(([k, v]) => `${k} ${Math.round((100 * v.ok) / v.all)}% of ${v.all}` + (v.all >= 10 && v.ok / v.all >= 0.9 ? ' (could be automatic: ask the approver)' : v.all >= 10 && v.ok / v.all <= 0.2 ? ' (tighten or drop)' : ''));
+const text = [`**Daily CRM check**: ${proposed} new in Review, ${notProposed.length} checked and not proposed.`, stale.length ? `Sync issues:\n${stale.map((s) => `- ${s}`).join('\n')}` : '', acceptance.length ? `Acceptance so far: ${acceptance.join('; ')}` : ''].filter(Boolean).join('\n\n');
+await workspace('POST', `/rooms/${CRM_ROOM}/messages/ui`, { fallback_text: text.replace(/\*\*/g, ''), blocks: [{ type: 'markdown', content: text }, ...(notProposed.length ? [{ type: 'collapsible', title: 'Checked, not proposed', blocks: [{ type: 'markdown', content: notProposed.map((n) => `- ${n}`).join('\n') }] }] : [])] });
+console.log(JSON.stringify({ candidates: cands.length, picked: picked.length, proposed, stale: stale.length }));
