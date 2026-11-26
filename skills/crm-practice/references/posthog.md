@@ -30,12 +30,32 @@ Before writing "came from X", also check the mailboxes and the CRM for earlier c
 
 ### For a product with sign-ups: account usage
 
-A daily scheduled Automation, in code:
+A daily scheduled Automation, in code (`code/automations/posthog-usage.ts`):
 
 1. Read the CRM's current account list (paginated).
-2. One SQL query for all of them: active users and key actions in the last 7 and 28 days, last activity time, per account (group) or per person email.
+2. One SQL query for all of them: active people and key actions in the last 7 and 14 days and in the 14 days before, last activity time, per person email.
 3. Write one weekly usage activity per account through the intake (or the usage columns, if the team added them and made the sync their owner). Never raw events.
-4. Flag for the account owner, without changing status: a paying account whose usage fell sharply against its own previous weeks; a cancelled account that is still very active; an unpaid account with high usage. These are signals to check, not conclusions.
+4. Push churn risk to the account manager (next section), without changing status or health. A cancelled account that is still very active goes into one Room card as a signal to check.
+5. If PostHog returns no usage for any customer, fail the run. An empty answer from the wrong project looks exactly like a quiet customer base.
+
+### Churn risk: what to push, and when
+
+The Kylon team replayed every paying account that churned from September 2026 on against its own product data (key event: messages sent by people). Two signals caught all but one of them, a median of 20 days before they churned:
+
+- **quiet:** fewer than 20 key actions in the last 14 days.
+- **one_person:** only one person did anything in the last 14 days.
+
+Quiet or one-person accounts churned about five times as often as accounts with two or more active people. One rule we expected to work did not: "usage fell sharply against its own previous weeks" flagged accounts that churned no more often than healthy ones. The template no longer uses it.
+
+How the push behaves, so it stays useful and quiet:
+
+- Only a **new** flag that has held for 3 daily runs is pushed. Accounts already flagged on the first run are the baseline: they are listed once in one Room card, not pushed one by one.
+- One push per account per 14 days, and at most 5 per account manager per run.
+- No push when the team was in touch in the last 7 days (a meeting, call, email or message in the CRM) or a meeting is booked in the next 7.
+- The push goes to the account's own record thread and mentions its account manager, with the numbers before and after, the last activity and the last contact. The manager replies there: draft a follow-up, reach out themselves, or no follow-up needed.
+- Each push is logged as an activity (source `Usage risk`).
+
+Before you trust the thresholds, replay your own churned accounts: for each rule, count how many churned accounts it caught, how many days early, and how many flagged accounts stayed. After four weeks live, check how often the manager actually followed up on each rule; tighten or drop a rule below about 30%. If your product has Agents or automations doing the work, people can send few messages while the account is busy: count those actions as key events, or the quiet rule will flag healthy accounts.
 
 ### For a services business: website and lead source only
 

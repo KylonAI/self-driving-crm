@@ -17,7 +17,7 @@ Every template writes customer data only through the CRM's `POST /api/intake` (s
 | `meeting-recap-check.ts` | Recaps to notes, to-dos and a follow-up Draft Card turn | every 15 min | `references/meeting-follow-up.md` |
 | `signup-digest.ts` | Daily sign-up post with backgrounds, written back to the CRM | cron, once or twice a day | `references/signup-digest.md` |
 | `posthog-lead-source.ts` | First visit and last touch for each new person | hourly | `references/posthog.md` |
-| `posthog-usage.ts` | Weekly usage per account and signals for the owner | daily | `references/posthog.md` |
+| `posthog-usage.ts` | Weekly usage per account, and churn risk (quiet or one person left) pushed to the account manager in the record thread | daily | `references/posthog.md` |
 | `clarity-daily.ts` | Website page and channel snapshot from Microsoft Clarity | daily | `references/clarity.md` |
 | `email-log.ts` | Functions to paste into any Automation that emails customers, plus an example | n/a | `references/email-log.md` |
 | `daily-check.ts` | Duplicates, profile gaps, stale syncs, proposed into Review | daily | `references/daily-check.md` |
