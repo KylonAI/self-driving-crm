@@ -10,6 +10,8 @@ You are setting up a CRM practice for this team: a CRM App that holds every cust
 
 Read `references/operating-rules.md` before step 1. Those rules come from mistakes we made running this ourselves, and they apply to every step.
 
+Read `references/how-it-learns.md` too. From the first run, every correction and every repeated Review decision becomes a rule you write down and follow; that is what makes the CRM run itself.
+
 ## How each step runs
 
 Every step below follows the same loop. Do not skip parts of it.
@@ -82,6 +84,10 @@ Ask what they sell (`references/interview.md`, question 2): a product people sig
 Offer the daily CRM check in `references/daily-check.md` (stale syncs, records missing background, duplicates, open Review items).
 
 Finish with a short checklist: CRM type and stages, migration result with counts, each data source with who connected it and its first sync, which intake Automations are live, who still has to connect. Offer to come back for anyone who has not.
+
+## 10. Learning
+
+Follow `references/how-it-learns.md` from the first day: when someone corrects you, fix the work and write the rule where it belongs, with their name and the date; when the team settles the same kind of Review item the same way three times, write that down too. After the first clean week, offer the Monday "What I learned this week" card, saved paused until someone turns it on.
 
 ## When something stops syncing
 

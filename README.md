@@ -1,10 +1,17 @@
 # Self-driving CRM
 
-A CRM that keeps itself up to date. Email, meetings, bookings, form leads and sign-ups flow in on their own, every customer gets one thread where all of it lands, and an agent drafts the next step for a person to approve.
+A CRM that learns how you work. Then runs itself.
 
-It is open source and built on [Kylon](https://kylon.io/?utm_source=github&utm_medium=referral&utm_campaign=self-driving-crm). It is packaged as Skills, so an agent can set it up for a team by asking questions, showing a design and building only after the team says yes.
+Open-source skills and workflows that keep a CRM current on their own and get better every week:
 
-This repo is written for agencies and consultants who build AI systems for their clients. If that is you, treat it as a starting point you install and then shape around each client.
+- **Observe.** Email, meetings, bookings, form leads and sign-ups land on the right customer through one intake.
+- **Act.** An agent fills blanks, moves meetings, drafts follow-ups for a person to send, and sends real disagreements to Review.
+- **Learn.** Correct it in a thread the way you would correct a new teammate, or keep deciding a kind of Review item the same way. It writes the rule down with your name and the date.
+- **Improve.** It follows those rules from the next run on, and every Monday shows what it learned and where each rule came from.
+
+The first use case is a CRM. Bring your current CRM's data: HubSpot can be moved once or read every hour while you run both (nothing is written back to it), and other CRMs come in from an export. It runs in [Kylon](https://kylon.io/?utm_source=github&utm_medium=referral&utm_campaign=self-driving-crm), with Kylon's agent or your own (Claude Code, Codex) as a member of the team. How the learning works: [`skills/crm-practice/references/how-it-learns.md`](skills/crm-practice/references/how-it-learns.md).
+
+It is packaged as Skills, so an agent can set it up for a team by asking questions, showing a design and building only after the team says yes. This repo is written for agencies and consultants who build AI systems for their clients, and for teams setting it up for themselves.
 
 ![CRM home with made-up demo data](docs/screenshots/01-home.png)
 
@@ -72,6 +79,7 @@ We would rather tell you now than have you find out on a client call.
 | `install-crm` with `crm-template-source` | A partner team has used it to set up their own CRM. |
 | `install-email` | Preview. Gmail and Microsoft 365 connect directly. Hosted IMAP mail (forwarding to an agent mailbox) and support tools without a connector (webhook) have not been tested; the skill proves each with one test message first. |
 | `crm-practice` Automation templates | Type-checked, but none has run on a fresh CRM yet. Every template makes the agent do a dry run on real data, writing nothing, before it is saved. |
+| Learning (`how-it-learns.md`) | How we run our own CRM. The rule from repeated Review decisions and the Monday card are documented here; we are running them on a fresh install next and will update this row. |
 
 ## Contributing
 
