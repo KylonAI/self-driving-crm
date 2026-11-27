@@ -23,7 +23,7 @@ Write each rule where it belongs, with the person's name and the date:
 | Kind of rule | Where it goes | Example |
 | --- | --- | --- |
 | How this team works | The CRM Room's guideline, under a heading like `## <Topic> (<Name>, <date>)` | "Before asking for a recap, check the guest's email for a reschedule." |
-| One person's preference | The agent's memory, scoped to that person | "Dana wants follow-ups short, no bullet points." |
+| One person's preference | The agent's memory, scoped to that person | "Wren wants follow-ups short, no bullet points." |
 | A repeatable method | A skill (this one, or the team's own) | "How we qualify an inbound agency lead." |
 | How records match or what goes to Review | A draft of the CRM App for a person to approve | "Treat `@acme.co` and `@acme.com` as the same company." |
 | What a scheduled sync or check does | A draft change to that Automation for a person to approve | "Skip the recap reminder when the meeting was moved." |
@@ -50,8 +50,8 @@ Anyone can undo a learned rule by deciding differently once (in Review or in the
 ## A worked example (made-up names)
 
 1. Sam at Harbor & Pine emails to move Tuesday's call to Friday. The agent moves the meeting on the record.
-2. Two hours after the old time, the agent asks Dana for the recap. Dana replies: "That call never happened. Sam moved it by email."
-3. The agent fixes the record and writes to the Room guideline: `## Recaps (Dana, Nov 24)`: "Before asking for a recap, check the guest's email for a reschedule."
-4. Next week Northwind moves a call by email. The agent updates the meeting and does not ask for a recap, and notes "followed the Recaps rule from Dana, Nov 24".
+2. Two hours after the old time, the agent asks Wren for the recap. Wren replies: "That call never happened. Sam moved it by email."
+3. The agent fixes the record and writes to the Room guideline: `## Recaps (Wren, Nov 24)`: "Before asking for a recap, check the guest's email for a reschedule."
+4. Next week Northwind moves a call by email. The agent updates the meeting and does not ask for a recap, and notes "followed the Recaps rule from Wren, Nov 24".
 
-Same idea from Review: Dana keeps HubSpot's phone number over a new email signature on Oct 30, Nov 6 and Nov 13. On Nov 27 the agent writes "When a signature phone differs from HubSpot, keep HubSpot's (from Dana's choices on Oct 30, Nov 6 and Nov 13)" and applies it to the next signature, saying which rule it followed.
+Same idea from Review: Wren keeps HubSpot's phone number over a new email signature on Oct 30, Nov 6 and Nov 13. On Nov 27 the agent writes "When a signature phone differs from HubSpot, keep HubSpot's (from Wren's choices on Oct 30, Nov 6 and Nov 13)" and applies it to the next signature, saying which rule it followed.
